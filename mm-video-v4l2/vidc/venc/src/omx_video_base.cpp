@@ -1465,10 +1465,11 @@ bool omx_video::post_event(unsigned long p1,
         m_cmd_q.insert_entry(p1,p2,id);
     }
 
+    pthread_mutex_unlock(&m_lock);
+
     bRet = true;
     DEBUG_PRINT_LOW("Value of this pointer in post_event %p",this);
     post_message(this, id);
-    pthread_mutex_unlock(&m_lock);
 
     return bRet;
 }
@@ -2130,6 +2131,28 @@ OMX_ERRORTYPE  omx_video::get_parameter(OMX_IN OMX_HANDLETYPE     hComp,
                     eRet = OMX_ErrorHardware;
                 }
                 pParam->bDisable = pq_status ? OMX_FALSE : OMX_TRUE;
+                break;
+            }
+        case OMX_IndexParamConsumerUsageBits:
+            {
+                OMX_U32 *pParam = reinterpret_cast<OMX_U32 *>(paramData);
+
+                DEBUG_PRINT_HIGH("%s:%s: OMX_IndexParamConsumerUsageBits",__FILE__,__FUNCTION__);
+
+                if (pParam)
+                {
+                   *pParam = GRALLOC_USAGE_HW_VIDEO_ENCODER;
+                   if (secure_session)
+                     *pParam |= GRALLOC_USAGE_PROTECTED;
+
+                   DEBUG_PRINT_HIGH("Usage Bits = 0x%x", *pParam);
+                }
+                else
+                {
+                  DEBUG_PRINT_ERROR("%s:%s: OMX_IndexParamConsumerUsageBits: null ptr param passed",
+                    __FILE__,__FUNCTION__);
+                  eRet = OMX_ErrorBadParameter;
+                }
                 break;
             }
         default:
